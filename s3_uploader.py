@@ -4,22 +4,25 @@ from Tkinter import *
 from ttk import *
 import Tkconstants, tkFileDialog, tkSimpleDialog
 import boto3
+import botocore
 from os.path import expanduser
 import os
 import thread
 import ConfigParser
 
 class Uploader(Frame):
-    def __init__(self, root, filename):
+    def __init__(self, root, filename, bucket_name, s3_filename):
         Frame.__init__(self, root)
 
         self._filename = filename
+        self._bucket_name = bucket_name
+        self._s3_filename = s3_filename
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
 
         self._thread_should_exit = False
 
-        Label(self, text="{}".format(filename)).grid(row=0, column=0, sticky=W, padx=10, pady=2)
+        Label(self, text="{}/{}".format(bucket_name, s3_filename)).grid(row=0, column=0, sticky=W, padx=10, pady=2)
         self.progress = Progressbar(self, orient='horizontal', mode='determinate')
         self.progress.grid(row=0, column=1, padx=10, pady=2)
 
@@ -43,11 +46,23 @@ class Uploader(Frame):
         if self.percent >= 100:
             self.cancel_button["text"] = "Clear"
 
-    def _do_transfer(self, aws_access_key_id, aws_secret_access_key, filename, bucket, key):
-        aws_session = boto3.session.Session(aws_access_key_id, aws_secret_access_key)
-        cacert = os.environ.get('AWS_CACERT', None)
-        s3 = aws_session.client('s3', verify=cacert)
-        s3.upload_file(filename, bucket, key, Callback=self.update_progress)
+    def _do_transfer(self, aws_access_key_id, aws_secret_access_key):
+        try:
+            aws_session = boto3.session.Session(aws_access_key_id, aws_secret_access_key)
+            cacert = os.environ.get('AWS_CACERT', None)
+            s3 = aws_session.client('s3', verify=cacert)
+            s3.upload_file(self._filename, self._bucket_name, self._s3_filename, Callback=self.update_progress)
+        except botocore.exceptions.ClientError as e:
+            print "ERROR ", e.message
+            self.show_error([e.message])
+
+    def show_error(self, errors):
+        self.errors = Frame(self)
+        for error in errors:
+            Label(self.errors, text=error, style='Error.TLabel', font="Sans 8").pack(fill=BOTH)
+
+        self.errors.grid(row=1, columnspan=4, padx=10)
+        self.cancel_button["text"] = "Clear"
 
     def do_transfer(self, *args):
         thread.start_new_thread(self._do_transfer, args)
@@ -90,8 +105,7 @@ class S3FileUploader(Frame):
         r+=1
         Label(self, text="S3 Bucket:").grid(row=r, sticky=W, padx=padx, pady=pady)
         self.s3_bucket = StringVar(self)
-        self.s3_bucket.set("public")
-        self.s3_bucket_list = OptionMenu(self, self.s3_bucket, "org.cdfx.foobar", "secured", "secured", "public")
+        self.s3_bucket_list = OptionMenu(self, self.s3_bucket)
         self.s3_bucket_list.grid(row=r, column=1, sticky=W, padx=padx, pady=pady)
 
         r+=1
@@ -107,6 +121,7 @@ class S3FileUploader(Frame):
 
         self.r = r
         
+        self.errors = None
         self.config_file = config_file
         self.load_config(config_file)
         self.filename = None
@@ -118,6 +133,7 @@ class S3FileUploader(Frame):
             self.load_config(config_filename)
 
     def load_config(self, config_file):
+        self.clear_errors()
         config = ConfigParser.ConfigParser()
         config_file_handle = expanduser(config_file)
         config.read(config_file_handle)
@@ -135,6 +151,7 @@ class S3FileUploader(Frame):
             self.config_file = config_file
         except ConfigParser.NoSectionError:
             print "Failed to read Config File, missing section 's3_uploader'"
+            self.show_errors([u"\u26A0 Failed to read Config File, missing section 's3_uploader'"])
 
     def askopenfilename(self):
         # define options for opening or saving a file
@@ -154,16 +171,19 @@ class S3FileUploader(Frame):
             self.file_button["text"] = self.filename
 
     def show_errors(self, errors):
-        
         self.errors = Frame(self)
         for error in errors:
             Label(self.errors, text=error, style='Error.TLabel').pack(fill=BOTH)
 
         self.errors.grid(row=self.error_row, columnspan=2, pady=20)
 
+    def clear_errors(self):
+        if self.errors:
+            self.errors.destroy()
+            self.errors = None
+
     def upload_to_s3(self):
-        if hasattr(self, 'errors'):
-            self.errors.grid_forget()
+        self.clear_errors()
 
         aws_access_key_id = self.aws_access_key_id.get()
         aws_secret_access_key = self.aws_secret_access_key.get()
@@ -188,10 +208,10 @@ class S3FileUploader(Frame):
             return
 
         self.r += 1
-        up = Uploader(self, filename)
+        up = Uploader(self, filename, bucket, name)
         up.grid(row=self.r, columnspan=2, sticky=NSEW)
 
-        up.do_transfer(aws_access_key_id, aws_secret_access_key, filename, bucket, name)
+        up.do_transfer(aws_access_key_id, aws_secret_access_key)
 
 
 class AboutWin(tkSimpleDialog.Dialog):
