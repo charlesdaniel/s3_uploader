@@ -45,7 +45,8 @@ class Uploader(Frame):
 
     def _do_transfer(self, aws_access_key_id, aws_secret_access_key, filename, bucket, key):
         aws_session = boto3.session.Session(aws_access_key_id, aws_secret_access_key)
-        s3 = aws_session.client('s3')
+        cacert = os.environ.get('AWS_CACERT', None)
+        s3 = aws_session.client('s3', verify=cacert)
         s3.upload_file(filename, bucket, key, Callback=self.update_progress)
 
     def do_transfer(self, *args):
