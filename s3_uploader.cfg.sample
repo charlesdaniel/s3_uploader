@@ -1,0 +1,6 @@
+# A config file must contain at least the 's3_uploader' section
+[s3_uploader]
+aws_access_key_id=<ENTER AWS ACCESS KEY ID>
+aws_secret_access_key=<ENTER AWS SECRET ACCESS KEY>
+# Enter a list of buckets separated by commas
+s3_buckets=bucket1,bucket2,bucket3...
