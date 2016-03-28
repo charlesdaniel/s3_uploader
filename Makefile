@@ -1,7 +1,4 @@
-S3Uploader.app: dist/app.app
-	cp -R dist/app.app ./S3Uploader.app
-
-dist/app.app: data s3_uploader.py app.py
+dist/S3Uploader.app: data s3_uploader.py app.py
 	python setup.py py2app
 
 data:
@@ -9,4 +6,7 @@ data:
 	cp -R /Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/botocore/vendored/requests/cacert.pem data/
 
 clean:
-	rm -rf data dist build *.pyc S3Uploader.app
+	-rm -f *.pyc
+	-rm -rf data
+	-rm -rf build
+	-rm -rf dist

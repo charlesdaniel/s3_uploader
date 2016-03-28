@@ -9,9 +9,15 @@ from setuptools import setup
 
 APP = ['app.py']
 DATA_FILES = ['data']
-OPTIONS = {'argv_emulation': True, 'includes': 'HTMLParser,ConfigParser,boto3,botocore,boto3.s3.inject'}
+OPTIONS = {
+    'iconfile': 's3_uploader_icon.icns',
+    'argv_emulation': True,
+    'includes': 'HTMLParser,ConfigParser,boto3,botocore,boto3.s3.inject'
+}
 
 setup(
+    name="S3Uploader",
+    version="1.0",
     app=APP,
     data_files=DATA_FILES,
     options={'py2app': OPTIONS},
