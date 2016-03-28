@@ -9,6 +9,7 @@ from os.path import expanduser
 import os
 import thread
 import ConfigParser
+import webbrowser
 
 class Uploader(Frame):
     def __init__(self, root, filename, bucket_name, s3_filename):
@@ -22,7 +23,9 @@ class Uploader(Frame):
 
         self._thread_should_exit = False
 
-        Label(self, text="{}/{}".format(bucket_name, s3_filename)).grid(row=0, column=0, sticky=W, padx=10, pady=2)
+        s3_filelabel = Label(self, text="{}/{}".format(bucket_name, s3_filename))
+        s3_filelabel.bind("<Button-1>", lambda e: webbrowser.open_new("https://s3.amazonaws.com/{}/{}".format(bucket_name, s3_filename)))
+        s3_filelabel.grid(row=0, column=0, sticky=W, padx=10, pady=2)
         self.progress = Progressbar(self, orient='horizontal', mode='determinate')
         self.progress.grid(row=0, column=1, padx=10, pady=2)
 
