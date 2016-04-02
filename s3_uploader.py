@@ -10,6 +10,8 @@ import os
 import thread
 import ConfigParser
 import webbrowser
+import datetime
+
 
 class Uploader(Frame):
     def __init__(self, root, filename, bucket_name, s3_filename):
@@ -18,35 +20,82 @@ class Uploader(Frame):
         self._filename = filename
         self._bucket_name = bucket_name
         self._s3_filename = s3_filename
+
+        # Used in percent & rate metric calculations
         self._size = float(os.path.getsize(filename))
         self._seen_so_far = 0
+        self._last_timestamp = None
+        self._last_updated = None
+        self._rate_samples = [ 0 for _i in xrange(0, 10) ]
 
         self._thread_should_exit = False
 
         s3_filelabel = Label(self, text="{}/{}".format(bucket_name, s3_filename))
         s3_filelabel.bind("<Button-1>", lambda e: webbrowser.open_new("https://s3.amazonaws.com/{}/{}".format(bucket_name, s3_filename)))
         s3_filelabel.grid(row=0, column=0, sticky=W, padx=10, pady=2)
-        self.progress = Progressbar(self, orient='horizontal', mode='determinate')
-        self.progress.grid(row=0, column=1, padx=10, pady=2)
 
-        self.percent_label = Label(self, text="?", font="Sans 8")
-        self.percent_label.grid(row=0, column=2, padx=4, pady=2)
+        progress_frame = Frame(self)
+        progress_frame.grid(row=0, column=1, padx=10, pady=2)
+
+        self.progress = Progressbar(progress_frame, orient='horizontal', mode='determinate')
+        self.progress.grid(row=0, column=0, columnspan=3, pady=0)
+
+        self.percent_label = Label(progress_frame, text="?", font="Sans 8")
+        self.percent_label.grid(row=1, column=2, padx=4, pady=0)
+
+        self.rate_label = Label(progress_frame, text="?", font="Sans 8")
+        self.rate_label.grid(row=1, column=0, padx=2, pady=0)
+
+        self.rate_unit_label = Label(progress_frame, text="?", font="Sans 8")
+        self.rate_unit_label.grid(row=1, column=1, padx=2, pady=0)
 
         self.cancel_button = Button(self, text="Cancel", command=self.cancel_transfer)
         self.cancel_button.grid(row=0, column=3, padx=10, pady=2)
 
     def update_progress(self, bytes_amount):
+        # This method can be called many times a second. So we need to sample every so often (fractional seconds).
+        # The rates are sampled and stored in a list then the average is used for the display.
+
+        _now = datetime.datetime.now()
         self._seen_so_far += bytes_amount
         percentage = (self._seen_so_far / self._size) * 100
+        percent = int(percentage)
 
-        self.percent = int(percentage)
-        self.progress["value"] = self.percent
-        self.percent_label["text"] = "{}%".format(self.percent)
+        if (not self._last_updated) or ((_now - self._last_updated).total_seconds() > 0.25):
+            self._last_updated = _now
+            self.progress["value"] = percent
+            self.percent_label["text"] = "{}%".format(percent)
+
+            diff_secs = (_now - self._last_timestamp).total_seconds()
+            self._last_timestamp = _now
+            raw_rate = bytes_amount / diff_secs
+            self._rate_samples.append(raw_rate)
+            self._rate_samples.pop(0)
+
+            #rate = max(self._rate_samples)
+            rate = sum(self._rate_samples) / len(self._rate_samples)
+
+            # Make the rate more human-readable
+            sizes = ['KB','MB','GB','TB']
+            rate_unit = 'B'
+            for s in sizes:
+                if (rate // 1024) > 0:
+                    rate /= 1024
+                    rate_unit = s
+                else:
+                    break
+
+            self.rate_label["text"] = "{}".format(round(rate, 2))
+            self.rate_unit_label["text"] = "{}/s".format(rate_unit)
+
+        # If something set the _thread_should_exit flag then we should force the thread to exit
+        # which will also kill the upload.
         if self._thread_should_exit:
             self.cancel_button["text"] = "Clear"
             thread.exit()
 
-        if self.percent >= 100:
+        # If we're done the upload at 100% then just convert the cancel button to Clear
+        if percent >= 100:
             self.cancel_button["text"] = "Clear"
 
     def _do_transfer(self, aws_access_key_id, aws_secret_access_key):
@@ -54,7 +103,13 @@ class Uploader(Frame):
             aws_session = boto3.session.Session(aws_access_key_id, aws_secret_access_key)
             cacert = os.environ.get('AWS_CACERT', None)
             s3 = aws_session.client('s3', verify=cacert)
+            print "{} START TIME: {}".format(self._s3_filename, datetime.datetime.now())
+            self._last_timestamp = datetime.datetime.now()
             s3.upload_file(self._filename, self._bucket_name, self._s3_filename, Callback=self.update_progress)
+            print "{} END TIME: {}".format(self._s3_filename, datetime.datetime.now())
+            self.percent_label["text"] = "100%"
+            self.progress["value"] = 100
+            self.cancel_button["text"] = "Clear"
         except botocore.exceptions.ClientError as e:
             print "ERROR ", e.message
             self.show_error([e.message])
@@ -72,13 +127,14 @@ class Uploader(Frame):
 
     def cancel_transfer(self):
         if self.cancel_button["text"] == "Cancel":
+            # If the cancel button says "Cancel" then we want to set the exit flag to True
             self._thread_should_exit = True
         elif self.cancel_button["text"] == "Clear":
+            # Otherwise if the cancel button says "Clear" we have to remove the upload frame
             self.grid_forget()
 
 
 class S3FileUploader(Frame):
-
     def __init__(self, root, config_file):
         Frame.__init__(self, root)
 
