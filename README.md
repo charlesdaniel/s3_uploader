@@ -1,6 +1,14 @@
 # S3 Uploader
 ##### by Charles Daniel
 
+### Introduction
+
+This is a very simple S3 File Uploader app written in Python+Tkinter/ttk and uses Boto3 for the actual S3 interaction.
+Additionally it uses py2app to create a standalone OSX app that can be launched by clicking an icon.
+A configuration file can be used to specify the credentials as well as a list of buckets one should be uploading files into. It's mainly for giving it to non-technical people (along with a custom configuration file) so they can easily upload files to whatever bucket you like.
+
+Each file uploading is done in a separate thread so the UI won't be blocked and one can upload any number of files concurrently. It's been tested with binary files of up to 62GB, haven't had a chance to try anything larger yet.
+
 ### Building the App
 
 **Prerequisites**
