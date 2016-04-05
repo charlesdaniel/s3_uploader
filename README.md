@@ -10,18 +10,29 @@
 - Boto3
 - Py2App
 
-**Building the app**
+**Building a standalone app on OSX using py2app**
 
 Run `make`
 
 This builds the app into the `dist/` directory.
+You'll want to make sure you have a configuration file located at `~/s3_uploader.cfg`.
+Double click the new app in the `dist/` directory to launch it.
 
-**Running directly using Python**
+### Running directly using Python
+
+You can run the s3_uploader directly using Python on the command line:
 
 `python s3_uploader.py`
 
 ### Configuration
 
-There's a sample configuration file `s3_uploader.cfg.sample` that can be copies/used. Make sure you update the `aws_access_key_id` and `aws_secret_access_key` values. Add a list of s3 buckets for the pulldown by entering a comma separated list of bucket names as `s3_buckets`.
+There's a sample configuration file `s3_uploader.cfg.sample` that can be copied and used as the starting point for the configurations. Make sure you update the `aws_access_key_id` and `aws_secret_access_key` values. Add a list of s3 buckets for the pulldown by entering a comma separated list of bucket names as `s3_buckets`.
 
 Alternatively you should be able to make a similar section called `[s3_uploader]` in any other file (including the `~/.aws/credentials`)
+
+By default the app looks for the `~/s3_uploader.cfg` file for the configurations, however you should be able to open a different configuration file by going to File > Open Config from the menubar.
+
+
+### TODO
+
+- Get things to work with py2exe or pyinstaller to build a windows app

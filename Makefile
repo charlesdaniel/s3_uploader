@@ -3,7 +3,7 @@ dist/S3Uploader.app: dependencies data s3_uploader.py app.py
 	python setup.py py2app
 
 dependencies:
-	pip install -r pip-requirements.txt
+	sudo pip install -r pip-requirements.txt
 
 data: dependencies
 	botocore_dir=$$(python -c 'import botocore; print botocore.__path__[0]'); \
