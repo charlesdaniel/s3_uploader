@@ -1,7 +1,7 @@
 # S3 Uploader
 ##### by Charles Daniel
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/ciA5XX3CIOs/0.jpg)](https://www.youtube.com/watch?v=ciA5XX3CIOs)
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/ahXHOTSKi-4/0.jpg)](https://www.youtube.com/watch?v=ahXHOTSKi-4)
 
 ### Introduction
 
