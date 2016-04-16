@@ -11,7 +11,7 @@ import thread
 import ConfigParser
 import webbrowser
 import datetime
-
+import ntpath
 
 class Uploader(Frame):
     def __init__(self, root, filename, bucket_name, s3_filename):
@@ -134,6 +134,29 @@ class Uploader(Frame):
             self.grid_forget()
 
 
+class SecureEntry(Frame):
+    def __init__(self, root, variable):
+        Frame.__init__(self, root)
+
+        self.entry = Entry(self, textvariable=variable) 
+        self.entry.pack(side=LEFT)
+
+        self.toggle_button = Button(self, width=3, command=self.toggle_entry_security)
+        self.toggle_button.pack(side=LEFT, padx=0, pady=0)
+        self.toggle_entry_security(show=False)
+
+    def toggle_entry_security(self, show=None):
+        if show == None:
+            show = (self.entry['show'] == '*')  # toggle to opposite by default
+
+        if show == True:
+            self.entry['show'] = ''
+            self.toggle_button['text'] = "\xe0\xb2\xa0_\xe0\xb2\xa0"
+        else:
+            self.entry['show'] = '*'
+            self.toggle_button['text'] = ">_<"
+
+
 class S3FileUploader(Frame):
     def __init__(self, root, config_file):
         Frame.__init__(self, root)
@@ -149,12 +172,12 @@ class S3FileUploader(Frame):
         r+=1
         Label(self, text="AWS AccessKeyID:").grid(row=r, sticky=W, padx=padx, pady=pady)
         self.aws_access_key_id = StringVar(self)
-        Entry(self, textvariable=self.aws_access_key_id).grid(row=r, column=1, sticky=W, padx=padx, pady=pady)
+        SecureEntry(self, self.aws_access_key_id).grid(row=r, column=1, sticky=W, padx=padx)
 
         r+=1
         Label(self, text="AWS AccessSecretKey:").grid(row=r, sticky=W, padx=padx, pady=pady)
         self.aws_secret_access_key = StringVar(self)
-        Entry(self, textvariable=self.aws_secret_access_key).grid(row=r, column=1, sticky=W, padx=padx, pady=pady)
+        SecureEntry(self, self.aws_secret_access_key).grid(row=r, column=1, sticky=W, padx=padx, pady=pady)
 
         r+=1
         Label(self, text="File:").grid(row=r, sticky=W, padx=padx, pady=pady)
@@ -223,11 +246,13 @@ class S3FileUploader(Frame):
         options['title'] = 'Choose File to upload'
 
         # get filename
-        self.filename = tkFileDialog.askopenfilename(**self.file_opt)
+        _filename = tkFileDialog.askopenfilename(**self.file_opt)
 
         # open file on your own
-        if self.filename:
-            self.file_button["text"] = self.filename
+        if _filename:
+            self.filename = _filename
+            self.file_button["text"] = self.filename if (len(self.filename) <= 33) else "...{}".format(self.filename[-30:])
+            self.s3_name.set(ntpath.basename(self.filename))
 
     def show_errors(self, errors):
         self.errors = Frame(self)
