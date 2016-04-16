@@ -1,6 +1,8 @@
 # S3 Uploader
 ##### by Charles Daniel
 
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/ciA5XX3CIOs/0.jpg)](https://www.youtube.com/watch?v=ciA5XX3CIOs)
+
 ### Introduction
 
 This is a very simple S3 File Uploader app written in Python+Tkinter/ttk and uses Boto3 for the actual S3 interaction.
