@@ -217,7 +217,7 @@ class S3FileUploader(Frame):
         self.file_opt = options = {}
         #options['defaultextension'] = '' #'.csv'
         #options['filetypes'] = [('all files', '.*'), ('text files', '.csv')]
-        options['initialdir'] = expanduser("~")
+        options['initialdir'] = expanduser(self.filename) if self.filename else expanduser("~")
         #options['initialfile'] = ''
         options['parent'] = self
         options['title'] = 'Choose File to upload'
@@ -244,11 +244,11 @@ class S3FileUploader(Frame):
     def upload_to_s3(self):
         self.clear_errors()
 
-        aws_access_key_id = self.aws_access_key_id.get()
-        aws_secret_access_key = self.aws_secret_access_key.get()
+        aws_access_key_id = self.aws_access_key_id.get().strip()
+        aws_secret_access_key = self.aws_secret_access_key.get().strip()
         filename = self.filename
         bucket = self.s3_bucket.get()
-        name = self.s3_name.get()
+        name = self.s3_name.get().strip()
 
         errors = []
         if not aws_access_key_id:
